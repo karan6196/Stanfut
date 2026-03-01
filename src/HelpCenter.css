@@ -1,0 +1,24 @@
+.help-container {
+  padding: 40px;
+  color: #333;
+}
+
+.help-search {
+  width: 100%;
+  padding: 12px;
+  margin: 20px 0;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.articles {
+  display: grid;
+  gap: 20px;
+}
+
+.article-card {
+  padding: 20px;
+  border-radius: 16px;
+  background: #f7f9fc;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}

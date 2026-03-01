@@ -1,0 +1,4 @@
+.why-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 65px rgba(0, 0, 0, 0.25);
+}

@@ -47,6 +47,7 @@ export default function Home() {
 
   return (
     <>
+    
       {/* TICKER */}
       <div style={tickerWrapper}>
         <div style={tickerTrack}>
@@ -172,7 +173,6 @@ export default function Home() {
         <FeaturedVehicles />
         <WhyChooseUs />
       </div>
-
       {/* KEYFRAMES */}
       <style>
         {`

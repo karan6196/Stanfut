@@ -20,7 +20,8 @@ import Bookings from "./pages/Bookings";
 import Profile from "./pages/Profile";
 import { Toaster } from "react-hot-toast";
 import AIChatbot from "./components/AIChatbot";
-import About from "./pages/About";
+import { AuthUIProvider } from "./components/context/AuthUIContext";
+import AuthModal from "./components/auth/AuthModal";
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -48,14 +49,7 @@ function AppRoutes() {
       />
 
       {/* ---------- Protected Routes ---------- */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute isAuth={!!user}>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={<Home />} />
 
       <Route
         path="/vehicles"
@@ -110,28 +104,31 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="/about" element={<About />} />
     </Routes> 
-    
   );
 }
 
+
 export default function App() {
-  return (
-    <BookingProvider>
-      <Toaster position="top-center" reverseOrder={false} />
+return (
+<AuthUIProvider>
+<BookingProvider>
 
-      <Header />
+<Toaster position="top-center" />
 
-      <div style={main}>
-        <AppRoutes />
-      </div>
-      <AIChatbot/>
+<Header />
 
-      <Footer />
-      <FloatingSupport />
-    </BookingProvider>
-  );
+<AppRoutes />
+
+<Footer />
+<FloatingSupport />
+<AIChatbot />
+{/* GLOBAL POPUP */}
+<AuthModal />
+
+</BookingProvider>
+</AuthUIProvider>
+);
 }
 const main = {
   minHeight: "calc(100vh - 160px)",

@@ -54,7 +54,8 @@ export default function Footer() {
           {/* Company */}
           <div>
             <h4 style={heading}>Company</h4>
-<Link to="/about" style={navLink}>About Us</Link>            <p style={link}>Careers</p>
+            <p style={link}>About Us</p>
+            <p style={link}>Careers</p>
             <p style={link}>Partners</p>
           </div>
 
@@ -71,7 +72,7 @@ export default function Footer() {
                 <Link to="/privacy" style={navLink}>Privacy Policy</Link>
               </li>
               <li>
-                <Link to="/help" style={navLink}>FAQs</Link>
+                <Link to="/faq" style={navLink}>FAQs</Link>
               </li>
             </ul>
           </div>

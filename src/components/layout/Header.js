@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import BrandLogo from "../BrandLogo";
+import { useAuthUI } from "../context/AuthUIContext";
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,7 +19,7 @@ export default function Header() {
     { label: "Profile", path: "/profile" },
     { label: "Contact", path: "/contact" },
   ];
-
+  const { openLogin, openSignup } = useAuthUI();
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
@@ -60,23 +61,43 @@ export default function Header() {
 
       {/* RIGHT SIDE */}
       <div style={right}>
-        {/* user info */}
-        <div style={userBox}>
-          <div style={avatar}>
-            {name.charAt(0).toUpperCase()}
-          </div>
 
-          <div style={{ lineHeight: 1.2 }}>
-            <div style={userName}>{name}</div>
-            <div style={userStatus}>Online</div>
-          </div>
-        </div>
+{!user ? (
+  <>
+    <button
+      style={loginBtn}
+      onClick={() => openLogin()}
+    >
+      Login
+    </button>
 
-        {/* logout */}
-        <button style={logoutBtn} onClick={handleLogout}>
-          Logout
-        </button>
+    <button
+      style={signupBtn}
+      onClick={() => openSignup()}
+    >
+      Signup
+    </button>
+  </>
+) : (
+  <>
+    <div style={userBox}>
+      <div style={avatar}>
+        {name.charAt(0).toUpperCase()}
       </div>
+
+      <div style={{ lineHeight: 1.2 }}>
+        <div style={userName}>{name}</div>
+        <div style={userStatus}>Online</div>
+      </div>
+    </div>
+
+    <button style={logoutBtn} onClick={handleLogout}>
+      Logout
+    </button>
+  </>
+)}
+
+</div>
     </header>
   );
 }
@@ -261,4 +282,24 @@ const logoutBtn = {
   boxShadow: "0 6px 16px rgba(239,68,68,0.35)",
 
   transition: "0.25s",
+};
+
+const loginBtn = {
+  border: "1px solid rgba(255,255,255,0.2)",
+  padding: "10px 18px",
+  borderRadius: "12px",
+  background: "transparent",
+  color: "#fff",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const signupBtn = {
+  border: "none",
+  padding: "10px 18px",
+  borderRadius: "12px",
+  background: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
+  color: "#fff",
+  fontWeight: 800,
+  cursor: "pointer",
 };

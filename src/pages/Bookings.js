@@ -1,25 +1,42 @@
 import { useNavigate } from "react-router-dom";
 import { useBookings } from "../components/context/BookingContext";
+import { useState } from "react";
+
 
 export default function Bookings() {
   const navigate = useNavigate();
-  const { bookings, loading, removeBooking } = useBookings();
+  const { bookings = [], loading, removeBooking } = useBookings();
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+const [selectedBooking, setSelectedBooking] = useState(null);
+
+  /* ---------- LOADING ---------- */
+
+  if (loading) {
+    return (
+      <div className="container">
+        <h2>Loading bookings...</h2>
+      </div>
+    );
+  }
 
   /* ---------- SPLIT BOOKINGS ---------- */
 
-  const active = bookings.filter(
-    (b) =>
-      b.status === "Draft" ||
-      b.status === "Ready" ||
-      b.status === "Confirmed"
+  const pending = bookings.filter(
+    (b) => b.status === "Draft" || b.status === "Ready"
   );
 
-  const completed = bookings.filter((b) => b.status === "Paid");
+  const active = bookings.filter(
+    (b) => b.status === "Confirmed"
+  );
+
+  const completed = bookings.filter(
+    (b) => b.status === "Paid"
+  );
 
   /* ---------- TOTAL SPENT ---------- */
 
   const totalSpent = completed.reduce(
-    (sum, b) => sum + (b.totalRent + b.deposit),
+    (sum, b) => sum + ((b.totalRent || 0) + (b.deposit || 0)),
     0
   );
 
@@ -27,9 +44,12 @@ export default function Bookings() {
 
   function formatDate(t) {
     if (!t) return "Not set";
+
     try {
       const d =
-        typeof t?.toDate === "function" ? t.toDate() : new Date(t);
+        typeof t?.toDate === "function"
+          ? t.toDate()
+          : new Date(t);
 
       return d.toLocaleString("en-IN", {
         day: "numeric",
@@ -46,8 +66,18 @@ export default function Bookings() {
 
   function getSmartStatus(b) {
     const now = new Date();
-    const start = new Date(b.startTime);
-    const end = new Date(b.endTime);
+
+    const start =
+      typeof b.startTime?.toDate === "function"
+        ? b.startTime.toDate()
+        : new Date(b.startTime);
+
+    const end =
+      typeof b.endTime?.toDate === "function"
+        ? b.endTime.toDate()
+        : new Date(b.endTime);
+
+    if (!start || !end || isNaN(start) || isNaN(end)) return null;
 
     if (now < start) {
       const diffHours = Math.round(
@@ -119,34 +149,63 @@ export default function Bookings() {
 
         <div style={bottomRow}>
           <div style={total}>
-            ₹{b.totalRent + b.deposit}
+            ₹{(b.totalRent || 0) + (b.deposit || 0)}
           </div>
 
           <div style={actions}>
-            <button
-              style={primaryBtn}
-              onClick={() => navigate(`/checkout/${b.id}`)}
-            >
-              View
-            </button>
 
-            {b.status === "Paid" && (
+            {/* Draft or Ready */}
+            {(b.status === "Draft" || b.status === "Ready") && (
+              <>
+                <button
+                  style={primaryBtn}
+                  onClick={() => navigate(`/checkout/${b.id}`)}
+                >
+                  Continue
+                </button>
+
+                <button
+                  style={dangerBtn}
+                  onClick={() => removeBooking(b.id)}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+
+            {/* Confirmed */}
+            {b.status === "Confirmed" && (
               <button
-                style={secondaryBtn}
-                onClick={() =>
-                  navigate(`/vehicle/${b.vehicleId}`)
-                }
-              >
-                Rebook
+                style={primaryBtn}
+              onClick={() => {
+  setSelectedBooking(b);
+  setShowDetailsModal(true);
+}}>
+                View Details
               </button>
             )}
 
-            <button
-              style={dangerBtn}
-              onClick={() => removeBooking(b.id)}
-            >
-              Cancel
-            </button>
+            {/* Paid */}
+            {b.status === "Paid" && (
+              <>
+                <button
+                  style={primaryBtn}
+                onClick={() => {
+  setSelectedBooking(b);
+  setShowDetailsModal(true);
+}}>
+                  View
+                </button>
+
+                <button
+                  style={secondaryBtn}
+                  onClick={() => navigate(`/vehicle/${b.vehicleId}`)}
+                >
+                  Rebook
+                </button>
+              </>
+            )}
+
           </div>
         </div>
       </div>
@@ -172,7 +231,7 @@ export default function Bookings() {
     <div className="container">
       <h1 style={{ marginBottom: "20px" }}>My Bookings</h1>
 
-      {/* STATS SECTION */}
+      {/* STATS */}
       <div style={statsRow}>
         <div style={statCard}>
           <div style={statValue}>{bookings.length}</div>
@@ -181,7 +240,7 @@ export default function Bookings() {
 
         <div style={statCard}>
           <div style={statValue}>{active.length}</div>
-          <div style={statLabel}>Active</div>
+          <div style={statLabel}>Confirmed</div>
         </div>
 
         <div style={statCard}>
@@ -190,10 +249,19 @@ export default function Bookings() {
         </div>
       </div>
 
-      {/* ACTIVE */}
+      {/* PENDING */}
       <div style={section}>
-        <h2 style={sectionTitle}>Active Bookings</h2>
+        <h2 style={sectionTitle}>Pending Bookings</h2>
+        {pending.length === 0
+          ? <Empty />
+          : pending.map((b) => (
+              <BookingRow key={b.id} b={b} />
+            ))}
+      </div>
 
+      {/* CONFIRMED */}
+      <div style={section}>
+        <h2 style={sectionTitle}>Confirmed Bookings</h2>
         {active.length === 0
           ? <Empty />
           : active.map((b) => (
@@ -204,13 +272,84 @@ export default function Bookings() {
       {/* COMPLETED */}
       <div style={section}>
         <h2 style={sectionTitle}>Completed</h2>
-
         {completed.length === 0
           ? <Empty />
           : completed.map((b) => (
               <BookingRow key={b.id} b={b} />
             ))}
       </div>
+      {showDetailsModal && selectedBooking && (
+  <div style={modalOverlay}>
+    <div style={modalBox}>
+
+      <button
+        style={closeBtn}
+        onClick={() => {
+          setShowDetailsModal(false);
+          setSelectedBooking(null);
+        }}
+      >
+        ✕
+      </button>
+<h2 style={{ marginBottom: 20 }}>Booking Details</h2>
+
+<div style={infoRow}>
+  <strong>Booking ID:</strong> {selectedBooking.id}
+</div>
+
+<div style={infoRow}>
+  <strong>Vehicle:</strong> {selectedBooking.vehicleName}
+</div>
+
+<div style={infoRow}>
+  <strong>Vehicle ID:</strong> {selectedBooking.vehicleId || "N/A"}
+</div>
+
+<div style={infoRow}>
+  <strong>Status:</strong> {selectedBooking.status}
+</div>
+
+<div style={infoRow}>
+  <strong>Start:</strong> {formatDate(selectedBooking.startTime)}
+</div>
+
+<div style={infoRow}>
+  <strong>End:</strong> {formatDate(selectedBooking.endTime)}
+</div>
+
+<div style={infoRow}>
+  <strong>Price Per Day:</strong> ₹{selectedBooking.pricePerDay || 0}
+</div>
+
+<div style={infoRow}>
+  <strong>Deposit:</strong> ₹{selectedBooking.deposit || 0}
+</div>
+
+<div style={infoRow}>
+  <strong>Total Rent:</strong> ₹{selectedBooking.totalRent || 0}
+</div>
+
+<div style={infoRow}>
+  <strong>Total Paid:</strong> ₹{
+    (selectedBooking.totalRent || 0) +
+    (selectedBooking.deposit || 0)
+  }
+</div>
+
+<div style={infoRow}>
+  <strong>Created On:</strong>{" "}
+  {selectedBooking.createdAt
+    ? formatDate(selectedBooking.createdAt)
+    : "Not available"}
+</div>
+
+<div style={infoRow}>
+  <strong>User ID:</strong> {selectedBooking.userId || "N/A"}
+</div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -350,4 +489,44 @@ const empty = {
   borderRadius: "16px",
   background: "rgba(255,255,255,0.03)",
   border: "1px solid rgba(255,255,255,0.06)",
+};
+const modalOverlay = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  background: "rgba(0,0,0,0.7)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 9999,
+};
+
+const modalBox = {
+  width: "90%",
+  maxWidth: "500px",
+  background: "#0f172a",
+  padding: "30px",
+  borderRadius: "20px",
+  color: "#fff",
+  position: "relative",
+};
+
+const closeBtn = {
+  position: "absolute",
+  top: 15,
+  right: 15,
+  background: "transparent",
+  border: "none",
+  color: "#fff",
+  fontSize: "18px",
+  cursor: "pointer",
+};
+
+const infoRow = {
+  marginBottom: 14,
+  padding: 10,
+  borderRadius: 8,
+  background: "rgba(255,255,255,0.05)",
 };

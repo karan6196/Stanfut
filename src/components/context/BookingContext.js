@@ -86,8 +86,8 @@ export function BookingProvider({ children }) {
       pricePerDay: Number(vehicle.pricePerDay) || 0,
       deposit: Number(vehicle.deposit) || 0,
 
-      startTime: "",
-      endTime: "",
+      startTime: null,
+endTime: null,
 
       totalDays: 0,
       totalRent: 0,

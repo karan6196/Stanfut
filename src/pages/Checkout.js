@@ -4,6 +4,10 @@ import toast from "react-hot-toast";
 import { useBookings } from "../components/context/BookingContext";
 import { useAuth } from "../components/context/AuthContext";
 import { FaCarSide, FaMotorcycle } from "react-icons/fa";
+import { useAuthUI } from "../components/context/AuthUIContext";
+import { FaCheckCircle, FaTimes, FaCalendarAlt, FaHashtag } from "react-icons/fa";
+import { IoCarSportSharp } from "react-icons/io5";
+import { BsWhatsapp } from "react-icons/bs";
 import {
   addDoc,
   collection,
@@ -26,11 +30,13 @@ export default function Checkout() {
   const { user } = useAuth();
 
   const booking = bookings.find(b => String(b.id) === String(id));
-
+  const { openLogin } = useAuthUI();
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [fireBookingId, setFireBookingId] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+const [confirmedData, setConfirmedData] = useState(null);
 
   /* SAFE DATE */
   const parseDate = (t) => {
@@ -122,9 +128,8 @@ export default function Checkout() {
 
     for (let d of snap.docs) {
       const b = d.data();
-      const oldStart = b.startTime.toDate().getTime();
-      const oldEnd = b.endTime.toDate().getTime();
-
+      const oldStart = parseDate(b.startTime)?.getTime();
+const oldEnd = parseDate(b.endTime)?.getTime();
       if (newStart < oldEnd && newEnd > oldStart) return true;
     }
     return false;
@@ -140,10 +145,10 @@ export default function Checkout() {
       }
 
       if (!user) {
-        toast.error("Login required");
-        navigate("/login");
-        return;
-      }
+  toast.error("Please login to continue");
+  openLogin();
+  return;
+}
 
       setLoading(true);
 
@@ -154,26 +159,32 @@ export default function Checkout() {
         return;
       }
 
-      const ref = await addDoc(collection(db, "bookings"), {
-        userId: user.uid,
-        vehicleId: booking.vehicleId,
-        vehicleName: booking.vehicleName,
-        pricePerDay: booking.pricePerDay,
-        deposit: booking.deposit,
-        startTime: Timestamp.fromDate(start),
-        endTime: Timestamp.fromDate(end),
-        totalDays: booking.totalDays,
-        totalRent: booking.totalRent,
-        discount,
-        finalPayable: price.final,
-        status: "Confirmed",
-        createdAt: serverTimestamp(),
-      });
+      await updateDoc(doc(db, "bookings", booking.id), {
+      startTime: Timestamp.fromDate(start),
+    endTime: Timestamp.fromDate(end),
+    totalDays: booking.totalDays,
+    totalRent: booking.totalRent,
+    discount,
+    finalPayable: price.final,
+    status: "Confirmed",
+    updatedAt: serverTimestamp(),
+  });
 
-      setFireBookingId(ref.id);
-      updateBooking(booking.id, { status: "Confirmed" });
+  updateBooking(booking.id, { status: "Confirmed" });
 
-      toast.success("Booking Confirmed ✅");
+/* ---------- PREPARE POPUP DATA ---------- */
+
+setConfirmedData({
+id: booking.id,
+vehicleName: booking.vehicleName,
+start: start,
+end: end,
+amount: price.final,
+time: new Date(),
+});
+
+setShowSuccessModal(true); // ✅ show popup
+
     } catch (err) {
       toast.error(err.message || "Booking failed");
     }
@@ -304,7 +315,119 @@ const getVehicleIcon = () => {
           </div>
         </div>
       </div>
+  {showSuccessModal && confirmedData && (
+  <div style={modalOverlay}>
+    <div style={modalBox}>
+
+      {/* CLOSE BUTTON */}
+      <button
+        style={closeBtn}
+        onClick={() => {
+          setShowSuccessModal(false);
+          navigate("/");
+        }}
+      >
+        <FaTimes />
+      </button>
+
+      {/* SUCCESS ICON */}
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <FaCheckCircle size={70} color="#22c55e" />
+        <h2 style={{ marginTop: 15, fontWeight: 800 }}>
+          Booking Confirmed
+        </h2>
+      </div>
+
+      <div style={modalContentModern}>
+
+        <div style={infoRow}>
+          <FaHashtag style={infoIcon} />
+          <div>
+            <small>Booking ID</small>
+            <div>{confirmedData.id}</div>
+          </div>
+        </div>
+
+        <div style={infoRow}>
+          <IoCarSportSharp style={infoIcon} />
+          <div>
+            <small>Vehicle</small>
+            <div>{confirmedData.vehicleName}</div>
+          </div>
+        </div>
+
+        <div style={infoRow}>
+          <FaCalendarAlt style={infoIcon} />
+          <div>
+            <small>Start</small>
+            <div>{confirmedData.start.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={infoRow}>
+          <FaCalendarAlt style={infoIcon} />
+          <div>
+            <small>End</small>
+            <div>{confirmedData.end.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={infoRow}>
+          <FaCalendarAlt style={infoIcon} />
+          <div>
+            <small>Confirmed At</small>
+            <div>{confirmedData.time.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={infoRow}>
+          <FaHashtag style={infoIcon} />
+          <div>
+            <small>Amount Paid</small>
+            <div>₹{confirmedData.amount}</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style={modalButtonsModern}>
+
+        <button
+          style={modernPrimaryBtn}
+          onClick={() => navigate("/bookings")}
+        >
+          View My Bookings
+        </button>
+
+        <button
+          style={modernWhatsappBtn}
+          onClick={() => {
+            const msg =
+`✅ STANFUT Booking Confirmed
+
+Booking ID: ${confirmedData.id}
+Vehicle: ${confirmedData.vehicleName}
+Start: ${confirmedData.start.toLocaleString()}
+End: ${confirmedData.end.toLocaleString()}
+Amount: ₹${confirmedData.amount}`;
+
+            window.open(
+              "https://wa.me/?text=" + encodeURIComponent(msg),
+              "_blank"
+            );
+          }}
+        >
+          <BsWhatsapp style={{ marginRight: 8 }} />
+          Share
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
     </>
+    
   );
 }
 
@@ -400,3 +523,92 @@ const instantCard = {
 };const callBtn = { padding: 14, borderRadius: 14, background: "#2563eb", color: "#fff", textDecoration: "none", fontWeight: 700 };
 const whatsappBtn = { padding: 14, borderRadius: 14, background: "#16a34a", color: "#fff", textDecoration: "none", fontWeight: 700 };
 const subText = { fontSize: 13, marginTop: 6 };
+
+const modalOverlay = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  background: "rgba(0,0,0,0.75)",
+  backdropFilter: "blur(8px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 9999,
+};
+
+const modalBox = {
+  width: "90%",
+  maxWidth: "600px",
+  background: "linear-gradient(145deg,#0f172a,#020617)",
+  borderRadius: "24px",
+  padding: "40px 30px",
+  color: "#fff",
+  boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+  position: "relative",
+};
+
+const closeBtn = {
+  position: "absolute",
+  top: 15,
+  right: 15,
+  background: "rgba(255,255,255,0.08)",
+  border: "none",
+  color: "#fff",
+  padding: 8,
+  borderRadius: "50%",
+  cursor: "pointer",
+};
+
+const modalContentModern = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  marginBottom: 30,
+};
+
+const infoRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 15,
+  background: "rgba(255,255,255,0.05)",
+  padding: 14,
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const infoIcon = {
+  fontSize: 18,
+  color: "#38bdf8",
+};
+
+const modalButtonsModern = {
+  display: "flex",
+  gap: 12,
+};
+
+const modernPrimaryBtn = {
+  flex: 1,
+  padding: 16,
+  borderRadius: 16,
+  border: "none",
+  background: "linear-gradient(135deg,#3b82f6,#2563eb)",
+  color: "#fff",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const modernWhatsappBtn = {
+  flex: 1,
+  padding: 16,
+  borderRadius: 16,
+  border: "none",
+  background: "#22c55e",
+  color: "#fff",
+  fontWeight: 800,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+};

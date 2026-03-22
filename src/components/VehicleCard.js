@@ -26,12 +26,13 @@ export default function VehicleCard({
   }, [vehicle.id]);
 
   const open = () => {
-    if (disabled) return;
+    console.log("CLICK WORKING");
+  if (disabled) return;
 
-    navigate(`/vehicle/${vehicle.id}`, {
-      state: bookingTime || null,
-    });
-  };
+  navigate(`/checkout/${vehicle.id}`, {
+    state: bookingTime || null,
+  });
+};
 
   const toggleFav = (e) => {
     e.stopPropagation();
@@ -49,22 +50,47 @@ export default function VehicleCard({
     );
   };
 
+  const handleHoverIn = (e) => {
+  const img = e.currentTarget.querySelector(".vehicle-img");
+  const overlay = e.currentTarget.querySelector(".hover-overlay");
+
+  e.currentTarget.style.transform = "translateY(-10px) scale(1.02)";
+  e.currentTarget.style.boxShadow = "0 30px 80px rgba(0,0,0,0.7)";
+
+  if (img) img.style.transform = "scale(1.12)";
+  if (overlay) overlay.style.opacity = 1;
+};
+
+const handleHoverOut = (e) => {
+  const img = e.currentTarget.querySelector(".vehicle-img");
+  const overlay = e.currentTarget.querySelector(".hover-overlay");
+
+  e.currentTarget.style.transform = "translateY(0) scale(1)";
+  e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.45)";
+
+  if (img) img.style.transform = "scale(1)";
+  if (overlay) overlay.style.opacity = 0;
+};
+
   return (
     <div
-      style={{
-        ...card,
-        opacity: disabled ? 0.55 : 1,
-      }}
-      onClick={open}
-    >
+  style={{
+    ...card,
+    opacity: disabled ? 0.55 : 1,
+  }}
+  onClick={open}
+  
+>
 
       {/* IMAGE */}
       <div style={imgWrap}>
 
-        <img
-          src={vehicle.image}
-          alt={vehicle.name}
-          style={img}
+        
+<img
+  src={vehicle.image}
+  alt={vehicle.name}
+  style={img}
+  className="vehicle-img"
           onError={(e)=>{
             e.target.src =
             "https://via.placeholder.com/600x400?text=Vehicle";
@@ -72,6 +98,30 @@ export default function VehicleCard({
         />
 
         <div style={gradient}/>
+        {/* HOVER OVERLAY */}
+<div className="hover-overlay" style={overlay}>
+
+  <div>
+    <h3 style={{margin:0,fontSize:"18px"}}>
+      {vehicle.name}
+    </h3>
+
+    <p style={{fontSize:"12px",opacity:0.7}}>
+      {vehicle.fuel} • ⭐ {vehicle.rating}
+    </p>
+  </div>
+
+  <div style={{marginTop:"10px"}}>
+    <div style={{fontWeight:"800",fontSize:"18px"}}>
+      ₹{vehicle.pricePerDay}/day
+    </div>
+
+    <button style={overlayBtn}>
+      Quick View →
+    </button>
+  </div>
+
+</div>
 
         {/* AVAILABILITY */}
         <div style={badgeLeft}>
@@ -88,9 +138,12 @@ export default function VehicleCard({
 
         {/* FAVORITE */}
         <button
-          style={favBtn}
-          onClick={toggleFav}
-        >
+        style={favBtn}
+        onClick={(e) => {
+        e.stopPropagation(); // 🔥 IMPORTANT
+        toggleFav(e);
+        }}
+        > 
           {fav ? "❤️" : "🤍"}
         </button>
 
@@ -192,7 +245,8 @@ const card = {
 const imgWrap = {
   position: "relative",
   height: "200px",
-  background: "#1e293b"
+  background: "#1e293b",
+  overflow: "hidden"
 };
 
 const img = {
@@ -200,7 +254,8 @@ const img = {
   width:"100%",
   height:"100%",
   objectFit:"cover",
-
+  transition: "transform 0.5s ease",
+  zIndex: 0
 };
 
 const gradient = {
@@ -209,7 +264,8 @@ const gradient = {
   inset:0,
 
   background:
-  "linear-gradient(to top,rgba(0,0,0,0.5),transparent)"
+  "linear-gradient(to top,rgba(0,0,0,0.5),transparent)",
+  zIndex: 1
 
 };
 
@@ -352,4 +408,30 @@ padding:"6px 12px",
 borderRadius:"999px",
 fontWeight:"700",
 fontSize:"12px"
+};
+const overlay = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  padding: "16px",
+  background:
+    "linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.2))",
+  opacity: 0,
+  transition: "0.3s ease",
+  zIndex: 3,
+  pointerEvents: "none"
+};
+
+const overlayBtn = {
+  marginTop: "8px",
+  padding: "8px 12px",
+  borderRadius: "8px",
+  border: "none",
+  background: "linear-gradient(135deg,#2563eb,#06b6d4)",
+  color: "#fff",
+  fontSize: "12px",
+  fontWeight: "700",
+  cursor: "pointer"
 };

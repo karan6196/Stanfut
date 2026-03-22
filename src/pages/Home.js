@@ -173,6 +173,45 @@ export default function Home() {
         <FeaturedVehicles />
         <WhyChooseUs />
       </div>
+{/* PARTNER SECTION */}
+
+<div style={partnerWrapper}>
+
+<div style={partnerSection}>
+
+<h2 style={partnerTitle}>
+  Let's Partner Up & Grow Together
+
+Earn With Your Vehicles
+</h2>
+
+<p style={partnerText}>
+List your cars or bikes on STANFUT and start earning from customers near you.
+We handle bookings, payments and support.
+</p>
+
+<div style={partnerButtons}>
+
+<button
+style={partnerBtn}
+onClick={()=>navigate("/partner/signup")}
+>
+Become a Partner
+</button>
+
+<button
+style={partnerLearnBtn}
+onClick={()=>navigate("/contact")}
+>
+Contact us To Learn More
+</button>
+
+</div>
+
+</div>
+
+</div>
+
       {/* KEYFRAMES */}
       <style>
         {`
@@ -445,4 +484,60 @@ const arrowCircle = {
   justifyContent: "center",
   color: "#fff",
   fontWeight: "bold"
+};
+const partnerWrapper={
+marginTop:120,
+display:"flex",
+justifyContent:"center"
+};
+const partnerSection={
+maxWidth:700,
+padding:"50px 40px",
+background:"linear-gradient(135deg,#0f172a,#020617)",
+borderRadius:20,
+textAlign:"center",
+color:"#fff",
+border:"1px solid rgba(255,255,255,0.06)",
+boxShadow:"0 30px 80px rgba(0,0,0,0.5)"
+};
+
+const partnerTitle={
+fontSize:32,
+fontWeight:800,
+marginBottom:12
+};
+
+const partnerText={
+opacity:0.8,
+fontSize:16,
+maxWidth:520,
+margin:"0 auto"
+};
+
+const partnerButtons={
+marginTop:30,
+display:"flex",
+gap:14,
+justifyContent:"center",
+flexWrap:"wrap"
+};
+
+const partnerBtn={
+padding:"14px 28px",
+borderRadius:12,
+background:"#22c55e",
+border:"none",
+color:"#fff",
+fontWeight:700,
+cursor:"pointer"
+};
+
+const partnerLearnBtn={
+padding:"14px 28px",
+borderRadius:12,
+background:"transparent",
+border:"1px solid rgba(255,255,255,0.2)",
+color:"#fff",
+fontWeight:600,
+cursor:"pointer"
 };

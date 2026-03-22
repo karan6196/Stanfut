@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
-
+import { db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 export default function Signup() {
   const navigate = useNavigate();
 
@@ -23,8 +24,15 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      navigate("/profile");
+      const res = await createUserWithEmailAndPassword(auth, email, password);
+
+await setDoc(doc(db, "users", res.user.uid), {
+  email: res.user.email,
+  role: "user", // default role
+  createdAt: new Date()
+});
+
+navigate("/profile");
     } catch (err) {
       setError("Failed to create account");
     }

@@ -1,13 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { useBookings } from "../components/context/BookingContext";
 import { useState } from "react";
-
-
+import BookingDetailsModal from "../components/BookingDetailsModal";
+import { FiTruck } from "react-icons/fi";
+import { FaCarSide } from "react-icons/fa";
 export default function Bookings() {
   const navigate = useNavigate();
   const { bookings = [], loading, removeBooking } = useBookings();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 const [selectedBooking, setSelectedBooking] = useState(null);
+const [tab,setTab] = useState("pending");
 
   /* ---------- LOADING ---------- */
 
@@ -25,13 +27,15 @@ const [selectedBooking, setSelectedBooking] = useState(null);
     (b) => b.status === "Draft" || b.status === "Ready"
   );
 
-  const active = bookings.filter(
-    (b) => b.status === "Confirmed"
-  );
-
-  const completed = bookings.filter(
-    (b) => b.status === "Paid"
-  );
+ const active = bookings.filter(
+  (b) =>
+    b.status === "Confirmed" ||
+    b.status === "Ride Started" ||
+    b.status === "Pending Partner Confirmation"
+);
+const completed = bookings.filter(
+  (b) => b.status?.toLowerCase().includes("complete")
+);
 
   /* ---------- TOTAL SPENT ---------- */
 
@@ -96,12 +100,14 @@ const [selectedBooking, setSelectedBooking] = useState(null);
   /* ---------- STATUS BADGE ---------- */
 
   function StatusBadge({ status }) {
-    const map = {
-      Draft: { color: "#64748b", bg: "rgba(100,116,139,0.12)" },
-      Ready: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-      Confirmed: { color: "#2563eb", bg: "rgba(37,99,235,0.12)" },
-      Paid: { color: "#16a34a", bg: "rgba(22,163,74,0.12)" },
-    };
+ const map = {
+  Draft: { color: "#64748b", bg: "rgba(100,116,139,0.12)" },
+  Ready: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  "Pending Partner Confirmation": { color: "#eab308", bg: "rgba(234,179,8,0.12)" },
+  Confirmed: { color: "#2563eb", bg: "rgba(37,99,235,0.12)" },
+  "Ride Started": { color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  "Ride Completed": { color: "#16a34a", bg: "rgba(22,163,74,0.12)" }
+};
 
     const s = map[status] || map.Draft;
 
@@ -132,6 +138,7 @@ const [selectedBooking, setSelectedBooking] = useState(null);
           <div>
             <h3 style={name}>{b.vehicleName}</h3>
             <p style={price}>₹{b.pricePerDay} / day</p>
+            <p>Vehicle Number: {b.vehicleNumber}</p>
           </div>
 
           <StatusBadge status={b.status} />
@@ -186,7 +193,7 @@ const [selectedBooking, setSelectedBooking] = useState(null);
             )}
 
             {/* Paid */}
-            {b.status === "Paid" && (
+            {b.status === "Ride Completed" && (
               <>
                 <button
                   style={primaryBtn}
@@ -230,7 +237,32 @@ const [selectedBooking, setSelectedBooking] = useState(null);
   return (
     <div className="container">
       <h1 style={{ marginBottom: "20px" }}>My Bookings</h1>
+{/* BOOKING TABS */}
 
+<div style={tabs}>
+
+<button
+style={tab === "pending" ? activeTab : tabBtn}
+onClick={()=>setTab("pending")}
+>
+Pending ({pending.length})
+</button>
+
+<button
+style={tab === "active" ? activeTab : tabBtn}
+onClick={()=>setTab("active")}
+>
+Active ({active.length})
+</button>
+
+<button
+style={tab === "completed" ? activeTab : tabBtn}
+onClick={()=>setTab("completed")}
+>
+Completed ({completed.length})
+</button>
+
+</div>
       {/* STATS */}
       <div style={statsRow}>
         <div style={statCard}>
@@ -249,106 +281,101 @@ const [selectedBooking, setSelectedBooking] = useState(null);
         </div>
       </div>
 
-      {/* PENDING */}
-      <div style={section}>
-        <h2 style={sectionTitle}>Pending Bookings</h2>
-        {pending.length === 0
-          ? <Empty />
-          : pending.map((b) => (
-              <BookingRow key={b.id} b={b} />
-            ))}
-      </div>
+      {/* TAB CONTENT */}
+<div style={tableWrapper}>
 
-      {/* CONFIRMED */}
-      <div style={section}>
-        <h2 style={sectionTitle}>Confirmed Bookings</h2>
-        {active.length === 0
-          ? <Empty />
-          : active.map((b) => (
-              <BookingRow key={b.id} b={b} />
-            ))}
-      </div>
+<table style={table}>
 
-      {/* COMPLETED */}
-      <div style={section}>
-        <h2 style={sectionTitle}>Completed</h2>
-        {completed.length === 0
-          ? <Empty />
-          : completed.map((b) => (
-              <BookingRow key={b.id} b={b} />
-            ))}
-      </div>
+<thead>
+
+<tr>
+<th style={th}></th>
+<th style={th}>Vehicle</th>
+<th style={th}>Vehicle No</th>
+<th style={th}>Pickup</th>
+<th style={th}>Drop</th>
+<th style={th}>Status</th>
+<th style={th}>Amount</th>
+<th style={th}>Action</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{(tab==="pending"?pending:tab==="active"?active:completed).length===0 ? (
+<tr>
+<td colSpan="7" style={{padding:30,textAlign:"center"}}>
+No bookings
+</td>
+</tr>
+) : (
+
+(tab==="pending"?pending:tab==="active"?active:completed).map(b=>(
+<tr key={b.id}>
+
+<td style={td}>
+<FaCarSide size={18} color="#38bdf8" /></td>
+
+<td style={td}>{b.vehicleName}</td>
+
+<td style={td}>{b.vehicleNumber || "-"}</td>
+
+<td style={td}>{formatDate(b.startTime)}</td>
+
+<td style={td}>{formatDate(b.endTime)}</td>
+
+<td style={td}>
+<StatusBadge status={b.status}/>
+</td>
+
+<td style={{...td,color:"#22c55e",fontWeight:700}}>
+₹{(b.totalRent || 0)+(b.deposit || 0)}
+</td>
+
+<td style={td}>
+
+<div style={{display:"flex",gap:8}}>
+
+<button
+style={primaryBtn}
+onClick={()=>{
+setSelectedBooking(b);
+setShowDetailsModal(true);
+}}
+>
+View
+</button>
+
+<button
+style={secondaryBtn}
+onClick={()=>navigate(`/vehicle/${b.vehicleId}`)}
+>
+Rebook
+</button>
+
+</div>
+
+</td>
+
+</tr>
+))
+)}
+
+</tbody>
+
+</table>
+
+</div>
       {showDetailsModal && selectedBooking && (
-  <div style={modalOverlay}>
-    <div style={modalBox}>
-
-      <button
-        style={closeBtn}
-        onClick={() => {
-          setShowDetailsModal(false);
-          setSelectedBooking(null);
-        }}
-      >
-        ✕
-      </button>
-<h2 style={{ marginBottom: 20 }}>Booking Details</h2>
-
-<div style={infoRow}>
-  <strong>Booking ID:</strong> {selectedBooking.id}
-</div>
-
-<div style={infoRow}>
-  <strong>Vehicle:</strong> {selectedBooking.vehicleName}
-</div>
-
-<div style={infoRow}>
-  <strong>Vehicle ID:</strong> {selectedBooking.vehicleId || "N/A"}
-</div>
-
-<div style={infoRow}>
-  <strong>Status:</strong> {selectedBooking.status}
-</div>
-
-<div style={infoRow}>
-  <strong>Start:</strong> {formatDate(selectedBooking.startTime)}
-</div>
-
-<div style={infoRow}>
-  <strong>End:</strong> {formatDate(selectedBooking.endTime)}
-</div>
-
-<div style={infoRow}>
-  <strong>Price Per Day:</strong> ₹{selectedBooking.pricePerDay || 0}
-</div>
-
-<div style={infoRow}>
-  <strong>Deposit:</strong> ₹{selectedBooking.deposit || 0}
-</div>
-
-<div style={infoRow}>
-  <strong>Total Rent:</strong> ₹{selectedBooking.totalRent || 0}
-</div>
-
-<div style={infoRow}>
-  <strong>Total Paid:</strong> ₹{
-    (selectedBooking.totalRent || 0) +
-    (selectedBooking.deposit || 0)
-  }
-</div>
-
-<div style={infoRow}>
-  <strong>Created On:</strong>{" "}
-  {selectedBooking.createdAt
-    ? formatDate(selectedBooking.createdAt)
-    : "Not available"}
-</div>
-
-<div style={infoRow}>
-  <strong>User ID:</strong> {selectedBooking.userId || "N/A"}
-</div>
-
-    </div>
-  </div>
+  <BookingDetailsModal
+    booking={selectedBooking}
+    formatDate={formatDate}
+    onClose={()=>{
+      setShowDetailsModal(false);
+      setSelectedBooking(null);
+    }}
+  />
 )}
     </div>
   );
@@ -385,7 +412,7 @@ const statLabel = {
 };
 
 const section = {
-  marginBottom: "40px",
+marginTop:"20px"
 };
 
 const sectionTitle = {
@@ -530,3 +557,54 @@ const infoRow = {
   borderRadius: 8,
   background: "rgba(255,255,255,0.05)",
 };
+const tabs={
+display:"flex",
+gap:"10px",
+marginBottom:"25px"
+};
+
+const tabBtn={
+padding:"10px 16px",
+borderRadius:"12px",
+border:"1px solid rgba(255,255,255,0.1)",
+background:"rgba(255,255,255,0.05)",
+color:"#fff",
+cursor:"pointer",
+fontWeight:600
+};
+
+const activeTab={
+padding:"10px 16px",
+borderRadius:"12px",
+border:"none",
+background:"linear-gradient(135deg,#3b82f6,#2563eb)",
+color:"#fff",
+cursor:"pointer",
+fontWeight:700
+};
+const tableWrapper={
+marginTop:"20px",
+background:"rgba(255,255,255,0.04)",
+border:"1px solid rgba(255,255,255,0.08)",
+borderRadius:"14px",
+overflow:"hidden"
+}
+
+const table={
+width:"100%",
+borderCollapse:"collapse"
+}
+
+const th={
+textAlign:"left",
+padding:"14px",
+fontSize:"13px",
+color:"#94a3b8",
+borderBottom:"1px solid rgba(255,255,255,0.08)"
+}
+
+const td={
+padding:"16px",
+borderBottom:"1px solid rgba(255,255,255,0.05)",
+fontSize:"14px"
+}

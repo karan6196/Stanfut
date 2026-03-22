@@ -22,6 +22,13 @@ import { Toaster } from "react-hot-toast";
 import AIChatbot from "./components/AIChatbot";
 import { AuthUIProvider } from "./components/context/AuthUIContext";
 import AuthModal from "./components/auth/AuthModal";
+import AdminDashboard from "./pages/AdminDashboard";
+import PartnerDashboard from "./pages/PartnerDashboard";
+import PartnerSignup from "./pages/PartnerSignup";
+import PartnerVehicles from "./pages/PartnerVehicles";
+import About from "./pages/About";
+import Careers from "./pages/Careers";
+import AdminRoute from "./routes/AdminRoute";
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -49,16 +56,22 @@ function AppRoutes() {
       />
 
       {/* ---------- Protected Routes ---------- */}
-      <Route path="/" element={<Home />} />
-
+<Route
+  path="/"
+  element={
+    user?.role === "partner"
+      ? <PartnerDashboard />
+      : <Home />
+  }
+/>
       <Route
-        path="/vehicles"
-        element={
-          <ProtectedRoute isAuth={!!user}>
-            <VehicleList />
-          </ProtectedRoute>
-        }
-      />
+  path="/vehicles"
+  element={
+    <ProtectedRoute isAuth={!!user && user.role !== "partner"}>
+      <VehicleList />
+    </ProtectedRoute>
+  }
+/>
 
       <Route
         path="/vehicle/:id"
@@ -86,24 +99,55 @@ function AppRoutes() {
   }
 />
       <Route
-        path="/bookings"
-        element={
-          <ProtectedRoute isAuth={!!user}>
-            <Bookings />
-          </ProtectedRoute>
-        }
-      />
+  path="/bookings"
+  element={
+    <ProtectedRoute isAuth={!!user && user.role !== "partner"}>
+      <Bookings />
+    </ProtectedRoute>
+  }
+/>
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/help" element={<HelpCenter />} />
 <Route path="/support" element={<Support />} />
       <Route
-        path="/profile"
-        element={
-          <ProtectedRoute isAuth={!!user}>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
+  path="/profile"
+  element={
+    <ProtectedRoute isAuth={!!user && user.role !== "partner"}>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
+     <Route
+  path="/admin"
+  element={
+    <AdminRoute>
+      <AdminDashboard />
+    </AdminRoute>
+  }
+/>
+  <Route
+  path="/partner"
+  element={
+    <ProtectedRoute isAuth={!!user && user.role === "partner"}>
+      <PartnerDashboard />
+    </ProtectedRoute>
+  }
+/>
+
+<Route path="/partner/signup" element={<PartnerSignup />} />
+
+
+<Route path="/about" element={<About />} />
+<Route
+  path="/partner/vehicles"
+  element={
+    <ProtectedRoute isAuth={!!user && user.role === "partner"}>
+      <PartnerVehicles />
+    </ProtectedRoute>
+  }
+/>
+<Route path="/careers" element={<Careers />} />
+
     </Routes> 
   );
 }

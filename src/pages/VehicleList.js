@@ -52,11 +52,16 @@ const fetch = async () => {
 
 try {
 
-const snap = await getDocs(collection(db, "vehicles"));
+const q = query(
+  collection(db, "vehicles"),
+  where("available", "==", true)
+);
+
+const snap = await getDocs(q);
 
 const list = snap.docs.map(doc => ({
-id: doc.id,
-...doc.data()
+  id: doc.id,
+  ...doc.data()
 }));
 
 setVehicles(list);
@@ -88,8 +93,11 @@ const end = new Date(bookingTime.endTime).getTime();
 
 const q = query(
 collection(db, "bookings"),
-where("status", "in", ["Confirmed","Paid"])
-);
+where("status", "in", [
+  "Pending Partner Confirmation",
+  "Confirmed",
+  "Ride Started"
+]));
 
 const unsub = onSnapshot(q, snap => {
 
@@ -188,11 +196,11 @@ Number(v.rating) >= Number(rating)
 if (verifiedOnly)
 list = list.filter(v => v.verified === true);
 
+
 list = list.filter(v =>
 Number(v.pricePerDay) <= price
 );
 
-if (hideBooked)
 list = list.filter(v =>
 !bookedMap[String(v.id)]
 );

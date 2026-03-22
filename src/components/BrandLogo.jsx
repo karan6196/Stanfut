@@ -1,49 +1,83 @@
-export default function BrandLogo({ size = 42 }) {
+import logo from "../assets/logo.png";
+
+export default function BrandLogo({ size = 60 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 120 120"
-        fill="none"
-      >
-        <defs>
-          <linearGradient id="stanfutGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#2563eb" />
-            <stop offset="100%" stopColor="#22c55e" />
-          </linearGradient>
-        </defs>
+    <div style={wrap}>
+      
+      {/* LEFT ICON */}
+      <img
+        src={logo}
+        alt="logo"
+        style={{
+          height: size,
+          width: size,
+          objectFit: "contain",
+        }}
+      />
 
-        <path
-          d="M80 20
-             C60 5, 20 15, 30 45
-             C35 60, 65 55, 75 75
-             C85 95, 45 110, 25 90"
-          stroke="url(#stanfutGradient)"
-          strokeWidth="18"
-          strokeLinecap="round"
-          fill="none"
-        />
-      </svg>
+      {/* RIGHT TEXT */}
+      <div style={textWrap}>
+        
+        {/* STANFUT */}
+        <div style={title}>STANFUT</div>
 
-      <div>
-        <div style={brandText}>STANFUT</div>
-        <div style={brandLine}></div>
+        {/* LINE */}
+        <div style={lineTop} />
+
+        {/* RENTALS */}
+        <div style={subtitle}>Rentals</div>
+
+        {/* LINE */}
+        <div style={lineBottom} />
+
       </div>
     </div>
   );
 }
 
-const brandText = {
-  fontSize: 22,
-  fontWeight: 900,
-  letterSpacing: 2,
-  color: "#ffffff",
+/* ================= STYLES ================= */
+
+const wrap = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
 };
-const brandLine = {
-  height: 4,
-  width: "100%",
-  marginTop: 4,
-  borderRadius: 4,
-  background: "linear-gradient(90deg,#2563eb,#22c55e)"
+
+const textWrap = {
+  display: "flex",
+  flexDirection: "column",
+  lineHeight: 1,
+};
+
+/* STANFUT */
+const title = {
+  fontSize: "20px",
+  fontWeight: 900,
+  color: "#ffffff",
+  letterSpacing: "1.5px",
+};
+
+/* TOP LINE */
+const lineTop = {
+  height: "3px",
+  width: "90px",
+  background: "linear-gradient(90deg,#38bdf8,#22c55e)",
+  borderRadius: "2px",
+  margin: "4px 0",
+};
+
+/* RENTALS */
+const subtitle = {
+  fontSize: "16px",
+  color: "#cbd5e1",
+  fontWeight: 600,
+};
+
+/* BOTTOM LINE */
+const lineBottom = {
+  height: "3px",
+  width: "70px",
+  background: "linear-gradient(90deg,#38bdf8,#22c55e)",
+  borderRadius: "2px",
+  marginTop: "4px",
 };

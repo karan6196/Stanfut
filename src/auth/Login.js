@@ -3,7 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { FiEye, FiEyeOff, FiMail, FiLock } from "react-icons/fi";
-
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 export default function Login() {
   const navigate = useNavigate();
 
@@ -12,22 +14,30 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  try {
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/vehicles");
-    } catch (err) {
-      setError("Invalid email or password");
-    }
+    const userCred = await signInWithEmailAndPassword(auth, email, password);
+    const uid = userCred.user.uid;
 
-    setLoading(false);
-  };
+    const partnerSnap = await getDoc(doc(db, "partners", uid));
 
+   if (partnerSnap.exists()) {
+  window.location.href = "/partner";
+} else {
+  window.location.href = "/vehicles";
+}
+
+  } catch (err) {
+    setError("Invalid email or password");
+  }
+
+  setLoading(false);
+};
   return (
     <div style={page}>
       <form style={card} onSubmit={handleLogin}>

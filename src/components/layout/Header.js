@@ -12,13 +12,19 @@ export default function Header() {
     navigate("/login", { replace: true });
   };
 
-  const navItems = [
-    { label: "Home", path: "/" },
-    { label: "Vehicles", path: "/vehicles" },
-    { label: "Bookings", path: "/bookings" },
-    { label: "Profile", path: "/profile" },
-    { label: "Contact", path: "/contact" },
-  ];
+  const navItems = user?.role === "partner"
+  ? [
+      { label: "Dashboard", path: "/partner" },
+      { label: "My Vehicles", path: "/partner/vehicles" },
+      { label: "Contact", path: "/contact" },
+    ]
+  : [
+      { label: "Home", path: "/" },
+      { label: "Vehicles", path: "/vehicles" },
+      { label: "Bookings", path: "/bookings" },
+      { label: "Profile", path: "/profile" },
+      { label: "Contact", path: "/contact" },
+    ];
   const { openLogin, openSignup } = useAuthUI();
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
@@ -32,8 +38,16 @@ export default function Header() {
   return (
     <header style={wrap}>
       {/* LEFT SIDE */}
-      <div style={left} onClick={() => navigate("/")}>
-  <BrandLogo size={42} />
+<div
+  style={left}
+  onClick={() => {
+    if (user?.role === "partner") {
+      navigate("/partner");
+    } else {
+      navigate("/");
+    }
+  }}
+>  <BrandLogo size={70} />
 </div>
 
       {/* CENTER NAV */}
@@ -115,7 +129,7 @@ const wrap = {
   justifyContent: "space-between",
   alignItems: "center",
 
-  padding: "14px 28px",
+  padding: "18px 28px",
 
   borderBottom: "1px solid rgba(255,255,255,0.08)",
   background: "rgba(15,23,42,0.9)",
@@ -216,7 +230,6 @@ const underline = {
   background: "linear-gradient(90deg,#3b82f6,#0ea5e9)",
   borderRadius: "2px",
 };
-
 
 
 /* RIGHT */

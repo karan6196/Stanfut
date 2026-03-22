@@ -54,8 +54,8 @@ export default function Footer() {
           {/* Company */}
           <div>
             <h4 style={heading}>Company</h4>
-            <p style={link}>About Us</p>
-            <p style={link}>Careers</p>
+            <Link to="/about" style={navLink}>About Us</Link>
+            <Link to="/careers" style={navLink}>Careers</Link>
             <p style={link}>Partners</p>
           </div>
 
@@ -186,8 +186,9 @@ const navLink = {
   color: "#fff",
   textDecoration: "none",
   opacity: 0.75,
-  display: "inline-block",
-  marginBottom: "8px",
+  display: "block", // ✅ FIX
+  marginBottom: "10px",
+  transition: "0.3s"
 };
 
 const list = {

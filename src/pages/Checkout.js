@@ -8,6 +8,10 @@ import { useAuthUI } from "../components/context/AuthUIContext";
 import { FaCheckCircle, FaTimes, FaCalendarAlt, FaHashtag } from "react-icons/fa";
 import { IoCarSportSharp } from "react-icons/io5";
 import { BsWhatsapp } from "react-icons/bs";
+import BookingDetailsModal from "../components/BookingDetailsModal";
+import { getDoc } from "firebase/firestore";
+import { HiOutlineLocationMarker } from "react-icons/hi";
+import { MdMyLocation } from "react-icons/md";
 import {
   addDoc,
   collection,
@@ -21,6 +25,35 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebase";
+const punjabCities = [
+"Amritsar",
+"Ludhiana",
+"Jalandhar",
+"Patiala",
+"Bathinda",
+"Mohali",
+"Chandigarh",
+"Hoshiarpur",
+"Pathankot",
+"Firozpur",
+"Batala",
+"Moga",
+"Khanna",
+"Abohar",
+"Muktsar",
+"Barnala",
+"Rajpura",
+"Kapurthala",
+"Faridkot",
+"Malerkotla",
+"Phagwara",
+"Fatehgarh Sahib",
+"Rupnagar",
+"Samrala",
+"Nabha",
+"Sangrur",
+"Tarn Taran"
+];
 
 export default function Checkout() {
   const { id } = useParams();
@@ -33,6 +66,8 @@ export default function Checkout() {
   const { openLogin } = useAuthUI();
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [dropLocation, setDropLocation] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fireBookingId, setFireBookingId] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -114,29 +149,79 @@ const [confirmedData, setConfirmedData] = useState(null);
   };
 
   const hasConflict = async () => {
-    const q = query(
-      collection(db, "bookings"),
-      where("vehicleId", "==", booking.vehicleId),
-      where("status", "in", ["Confirmed", "Paid"])
-    );
 
-    const snap = await getDocs(q);
+  const q = query(
+    collection(db, "bookings"),
+    where("vehicleId", "==", booking.vehicleId),
+    where("status", "in", ["Confirmed", "Paid"])
+  );
 
-    const newStart = parseDate(booking.startTime)?.getTime();
-    const newEnd = parseDate(booking.endTime)?.getTime();
-    if (!newStart || !newEnd) return false;
+  const snap = await getDocs(q);
 
-    for (let d of snap.docs) {
-      const b = d.data();
-      const oldStart = parseDate(b.startTime)?.getTime();
-const oldEnd = parseDate(b.endTime)?.getTime();
-      if (newStart < oldEnd && newEnd > oldStart) return true;
+  const newStart = parseDate(booking.startTime)?.getTime();
+  const newEnd = parseDate(booking.endTime)?.getTime();
+
+  if (!newStart || !newEnd) return false;
+
+  for (let d of snap.docs) {
+
+    if (d.id === booking.id) continue;
+
+    const b = d.data();
+
+    const oldStart = parseDate(b.startTime)?.getTime();
+    const oldEnd = parseDate(b.endTime)?.getTime();
+
+    if (!oldStart || !oldEnd) continue;
+
+    if (newStart < oldEnd && newEnd > oldStart) {
+      return true;
     }
-    return false;
+
+  }
+
+  return false;
+};
+const handlePayment = async () => {
+
+  const options = {
+    key: "rzp_test_xxxxxxxx", // 🔥 PUT YOUR KEY HERE
+    amount: price.final * 100,
+    currency: "INR",
+    name: "Stanfut",
+    description: "Vehicle Booking",
+
+    handler: async function (response) {
+      console.log("Payment Success:", response);
+
+      // 👉 after payment success
+      await confirmBooking();
+    },
+
+    prefill: {
+      email: user?.email
+    },
+
+    theme: {
+      color: "#2563eb"
+    }
   };
 
+  const rzp = new window.Razorpay(options);
+  rzp.open();
+};
   const confirmBooking = async () => {
+    if (loading) return;
+
     try {
+          const vehicleRef = doc(db, "vehicles", booking.vehicleId);
+const vehicleSnap = await getDoc(vehicleRef);
+
+const vehicleData = vehicleSnap.data();
+const partnerId = vehicleData.ownerId;
+const vehicleNumber = vehicleData.vehicleNumber || "";
+
+
       const start = parseDate(booking.startTime);
       const end = parseDate(booking.endTime);
       if (!start || !end) {
@@ -153,36 +238,78 @@ const oldEnd = parseDate(b.endTime)?.getTime();
       setLoading(true);
 
       const conflict = await hasConflict();
-      if (conflict) {
-        toast.error("Vehicle already booked ❌");
-        setLoading(false);
-        return;
-      }
 
-      await updateDoc(doc(db, "bookings", booking.id), {
-      startTime: Timestamp.fromDate(start),
-    endTime: Timestamp.fromDate(end),
-    totalDays: booking.totalDays,
-    totalRent: booking.totalRent,
-    discount,
-    finalPayable: price.final,
-    status: "Confirmed",
-    updatedAt: serverTimestamp(),
+if (conflict) {
+  toast.error("This vehicle is already booked for the selected time.");
+
+  // mark booking locally as cancelled
+  updateBooking(booking.id, {
+    status: "Cancelled"
   });
 
-  updateBooking(booking.id, { status: "Confirmed" });
+  setLoading(false);
+  navigate("/vehicles"); // redirect user back
+  return;
+}
+const verificationCode = Math.floor(100000 + Math.random() * 900000);
+/* ---- REVENUE CALCULATION ---- */
 
+const commissionRate = 0.12;
+
+const rent = booking.totalRent;
+const deposit = booking.deposit || 0;
+
+const adminRevenue = rent * commissionRate;
+const partnerRevenue = rent - adminRevenue;
+
+     await updateDoc(doc(db, "bookings", booking.id), {
+
+verificationCode: verificationCode,
+vehicleNumber: vehicleNumber || "Not Assigned",
+partnerId: partnerId,
+userLocation: userLocation,
+
+
+startTime: Timestamp.fromDate(start),
+endTime: Timestamp.fromDate(end),
+
+totalDays: booking.totalDays,
+totalRent: rent,
+
+deposit: deposit,
+
+adminRevenue: adminRevenue,
+partnerRevenue: partnerRevenue,
+
+refundAmount: deposit,
+
+discount,
+finalPayable: price.final,
+
+dropLocation,
+
+status: "Pending Partner Confirmation",
+
+updatedAt: serverTimestamp(),
+
+});
+
+updateBooking(booking.id, { status: "Pending Partner Confirmation" });
 /* ---------- PREPARE POPUP DATA ---------- */
 
 setConfirmedData({
 id: booking.id,
+verificationCode: verificationCode,
 vehicleName: booking.vehicleName,
-start: start,
-end: end,
+vehicleNumber: vehicleData.vehicleNumber,
+
+startTime: start,
+endTime: end,
+
 amount: price.final,
+dropLocation: dropLocation,
 time: new Date(),
 });
-
 setShowSuccessModal(true); // ✅ show popup
 
     } catch (err) {
@@ -238,7 +365,7 @@ const getVehicleIcon = () => {
               <StatusBadge status={booking.status} />
               <hr />
 
-              <label style={label}>Start Date</label>
+              <label style={label}>Pickup Date/Time</label>
               <input
                 type="datetime-local"
                 value={safeInputFormat(booking.startTime)}
@@ -251,7 +378,7 @@ const getVehicleIcon = () => {
                 style={inputStyle}
               />
 
-              <label style={label}>End Date</label>
+              <label style={label}>Drop Date/Time</label>
               <input
                 type="datetime-local"
                 value={safeInputFormat(booking.endTime)}
@@ -263,7 +390,54 @@ const getVehicleIcon = () => {
                 }
                 style={inputStyle}
               />
+<label style={label}>Delivery Location</label>
 
+<div style={locationBox}>
+
+<HiOutlineLocationMarker size={20} style={{color:"#38bdf8"}}/>
+
+<input
+  value={dropLocation}
+  onChange={(e)=>setDropLocation(e.target.value)}
+  placeholder="Select Delivery Area"
+  style={locationInput}
+/>
+
+<button
+style={locationBtn}
+onClick={()=>{
+
+if(!navigator.geolocation){
+alert("Location not supported");
+return;
+}
+
+navigator.geolocation.getCurrentPosition((pos)=>{
+
+const coords = {
+lat: pos.coords.latitude,
+lng: pos.coords.longitude
+};
+
+setUserLocation(coords);
+
+  // 🔥 THIS LINE FIXES YOUR ISSUE
+  const text = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+  setDropLocation(text);
+
+  toast.success("Location updated");
+
+});
+
+}}
+>
+
+<MdMyLocation size={18}/>
+Use GPS
+
+</button>
+
+</div>
               <div style={{ display: "flex", gap: "10px" }}>
                 <input
                   placeholder="Coupon code"
@@ -305,126 +479,42 @@ const getVehicleIcon = () => {
               <Row label="Discount" value={`− ₹${discount}`} />
               <hr />
               <Row label="Total Payable" value={`₹${price.final}`} bold />
+<div style={payBox}>
 
-              {booking.status === "Ready" && (
-                <button style={primaryBtn} onClick={confirmBooking}>
-                  Confirm Booking
-                </button>
-              )}
+    <div style={{fontSize:13,opacity:0.7}}>
+      Secure booking • Instant confirmation
+    </div>
+
+    <div style={payAmount}>
+      ₹{price.final}
+    </div>
+
+    {booking.status === "Ready" && (
+      <button style={confirmBtn} onClick={confirmBooking}>
+        Confirm Booking
+      </button>
+    )}
+
+    <div style={trustBox}>
+      <div>✔ Verified Vehicles</div>
+      <div>✔ Instant Booking</div>
+      <div>✔ 24/7 Support</div>
+    </div>
+
+  </div>
             </div>
           </div>
         </div>
       </div>
   {showSuccessModal && confirmedData && (
-  <div style={modalOverlay}>
-    <div style={modalBox}>
-
-      {/* CLOSE BUTTON */}
-      <button
-        style={closeBtn}
-        onClick={() => {
-          setShowSuccessModal(false);
-          navigate("/");
-        }}
-      >
-        <FaTimes />
-      </button>
-
-      {/* SUCCESS ICON */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <FaCheckCircle size={70} color="#22c55e" />
-        <h2 style={{ marginTop: 15, fontWeight: 800 }}>
-          Booking Confirmed
-        </h2>
-      </div>
-
-      <div style={modalContentModern}>
-
-        <div style={infoRow}>
-          <FaHashtag style={infoIcon} />
-          <div>
-            <small>Booking ID</small>
-            <div>{confirmedData.id}</div>
-          </div>
-        </div>
-
-        <div style={infoRow}>
-          <IoCarSportSharp style={infoIcon} />
-          <div>
-            <small>Vehicle</small>
-            <div>{confirmedData.vehicleName}</div>
-          </div>
-        </div>
-
-        <div style={infoRow}>
-          <FaCalendarAlt style={infoIcon} />
-          <div>
-            <small>Start</small>
-            <div>{confirmedData.start.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div style={infoRow}>
-          <FaCalendarAlt style={infoIcon} />
-          <div>
-            <small>End</small>
-            <div>{confirmedData.end.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div style={infoRow}>
-          <FaCalendarAlt style={infoIcon} />
-          <div>
-            <small>Confirmed At</small>
-            <div>{confirmedData.time.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div style={infoRow}>
-          <FaHashtag style={infoIcon} />
-          <div>
-            <small>Amount Paid</small>
-            <div>₹{confirmedData.amount}</div>
-          </div>
-        </div>
-
-      </div>
-
-      <div style={modalButtonsModern}>
-
-        <button
-          style={modernPrimaryBtn}
-          onClick={() => navigate("/bookings")}
-        >
-          View My Bookings
-        </button>
-
-        <button
-          style={modernWhatsappBtn}
-          onClick={() => {
-            const msg =
-`✅ STANFUT Booking Confirmed
-
-Booking ID: ${confirmedData.id}
-Vehicle: ${confirmedData.vehicleName}
-Start: ${confirmedData.start.toLocaleString()}
-End: ${confirmedData.end.toLocaleString()}
-Amount: ₹${confirmedData.amount}`;
-
-            window.open(
-              "https://wa.me/?text=" + encodeURIComponent(msg),
-              "_blank"
-            );
-          }}
-        >
-          <BsWhatsapp style={{ marginRight: 8 }} />
-          Share
-        </button>
-
-      </div>
-
-    </div>
-  </div>
+  <BookingDetailsModal
+    booking={confirmedData}
+    formatDate={(d)=>d.toLocaleString()}
+    onClose={()=>{
+      setShowSuccessModal(false);
+      navigate("/bookings");
+    }}
+  />
 )}
     </>
     
@@ -611,4 +701,72 @@ const modernWhatsappBtn = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+};
+const locationBox={
+display:"flex",
+alignItems:"center",
+gap:"10px",
+background:"rgba(255,255,255,0.05)",
+border:"1px solid rgba(255,255,255,0.1)",
+borderRadius:"14px",
+padding:"8px 10px",
+marginBottom:"16px"
+};
+
+const locationInput={
+flex:1,
+background:"transparent",
+border:"none",
+color:"#fff",
+fontSize:"14px",
+outline:"none"
+};
+
+const locationBtn={
+display:"flex",
+alignItems:"center",
+gap:"6px",
+padding:"8px 12px",
+borderRadius:"10px",
+border:"none",
+background:"linear-gradient(135deg,#22c55e,#10b981)",
+color:"#fff",
+fontWeight:"700",
+cursor:"pointer"
+};
+const payBox={
+marginTop:20,
+padding:20,
+borderRadius:16,
+background:"linear-gradient(135deg,#1e293b,#020617)",
+border:"1px solid rgba(255,255,255,0.08)",
+textAlign:"center"
+};
+
+const payAmount={
+fontSize:34,
+fontWeight:900,
+color:"#38bdf8",
+margin:"10px 0"
+};
+
+const confirmBtn={
+width:"100%",
+padding:"16px",
+borderRadius:"16px",
+border:"none",
+background:"linear-gradient(135deg,#3b82f6,#2563eb)",
+boxShadow:"0 10px 30px rgba(59,130,246,0.5)",
+color:"#fff",
+fontWeight:800,
+fontSize:"16px",
+cursor:"pointer"
+};
+
+const trustBox={
+display:"flex",
+justifyContent:"space-between",
+fontSize:"12px",
+color:"#94a3b8",
+marginTop:"12px"
 };

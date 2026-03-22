@@ -56,22 +56,40 @@ export function AuthProvider({ children }) {
         setLoading(false);
         return;
       }
+const userRef = doc(db, "users", currentUser.uid);
+const userSnap = await getDoc(userRef);
 
-      const ref = doc(db, "users", currentUser.uid);
-      const snap = await getDoc(ref);
+/* CHECK IF PARTNER */
 
-      if (!snap.exists()) {
+const partnerRef = doc(db, "partners", currentUser.uid);
+const partnerSnap = await getDoc(partnerRef);
 
-        await setDoc(ref, {
-          email: currentUser.email,
-          role: "user",
-          createdAt: serverTimestamp(),
-        });
+let role = "user";
 
-      }
+// 1. First check Firestore users collection
+if (userSnap.exists()) {
+  role = userSnap.data().role || "user";
+}
 
-      setUser(currentUser);
-      setLoading(false);
+// 2. Override if partner
+if (partnerSnap.exists()) {
+  role = "partner";
+}
+if (!userSnap.exists()) {
+  await setDoc(userRef, {
+    email: currentUser.email,
+    role: role,
+    createdAt: serverTimestamp(),
+  });
+}
+
+setUser({
+  uid: currentUser.uid,
+  email: currentUser.email,
+  role
+});
+
+setLoading(false);
 
     });
 

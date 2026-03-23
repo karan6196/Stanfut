@@ -185,7 +185,7 @@ const [confirmedData, setConfirmedData] = useState(null);
 const handlePayment = async () => {
 
   const options = {
-    key: "rzp_test_xxxxxxxx", // 🔥 PUT YOUR KEY HERE
+    key: "rzp_live_SUAjQuLmVYc1Ng", // 🔥 PUT YOUR KEY HERE
     amount: price.final * 100,
     currency: "INR",
     name: "Stanfut",
@@ -490,9 +490,9 @@ Use GPS
     </div>
 
     {booking.status === "Ready" && (
-      <button style={confirmBtn} onClick={confirmBooking}>
-        Confirm Booking
-      </button>
+      <button style={confirmBtn} onClick={handlePayment}>
+  Pay & Book
+</button>
     )}
 
     <div style={trustBox}>
